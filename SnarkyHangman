@@ -1,0 +1,184 @@
+'''
+Created on Mar 4, 2015
+
+@author: Christopher
+'''
+import random
+from sympy.core.numbers import One
+
+def load_lines(filename):
+    """
+    read words from specified file and return a list of
+    strings, each string is one line of the file
+    """
+    lines = []
+    f = open(filename)
+    for line in f.readlines():
+        line = line.strip()
+        lines.append(line)
+    return lines
+    
+    
+def get_words(filename, wordlength = 5):
+    """
+    returns a list of words having a specified length from
+    the file whose name is filename.
+    default length is 5 (if parameter not specified)
+    """
+    lines = load_lines(filename)
+    wlist = [w for w in lines if len(w) == wordlength]
+    return wlist
+    
+def process_letter(guessed, secret, letter):
+    for index, character in enumerate(secret):
+        if character == letter:
+            guessed[index] = letter      
+        else:
+            guessed = guessed
+    if guessed == secret.split():
+        print "Congratulations! You Won! The word was ", secret
+    return " ".join(guessed)
+#Displays blank spaces for unguessed letters and letters if they were correctly guessed.
+
+def misses_left(number):
+    number -= 1
+    return number
+
+#Returns number of wrong misses user has left if the user guesses wrong.
+
+def guesses_so_far(wrong, string):
+    for character in string:
+        if character == wrong:
+            print "You already guessed this letter, try again"
+            return string
+    else:
+        string += wrong + " "
+    return string
+
+#Returns a string of letters user has guessed so far that have been wrong.
+
+def win(actual, guess):
+    if guess == actual:
+        return "Congratulations, you won!"
+    else:
+        return 0
+    
+#Ends game if the user correctly guesses the word
+
+def word_length(words, length):
+    d = []
+    for word in words:
+        if len(word) == length:
+            d.append(word)
+    return d
+
+#Creates a list of all words of specified length
+
+def create_key(letter, available):
+    keylist = []
+    for word in available:
+        answer = process_letter(len(word)*["_"], word, letter)
+        keylist.append(answer)
+        sets = set(keylist)
+        realkeys = list(sets)
+    return realkeys
+
+#Creates a list of all the keys based on the words available and the letter guessed.
+
+def create_dict(keylist, available, letter, wronglist):
+    d = {}
+    for key in keylist:
+        for word in available:
+            count = 0
+            for character in word.split():
+                if character in wronglist:
+                    count += 1
+            if count == 0:
+                if key == process_letter(len(word)*["_"], word, letter):
+                    if key not in d.keys():
+                        d[key] = [word]
+                    else:
+                        d[key].append(word)
+    return d
+
+#Creates a dictionary of all available words for every possible type of template
+
+def longest_cat(dictionary):
+    Hard = ("", [])
+    for (template, words) in dictionary.items():
+        if len(words) > len(Hard[1]):
+            Hard = (template, words)
+    return Hard[1]
+
+#Returns longest item a.k.a. category of the dictionary. In turn it also returns new list of available words to choose from.
+
+def dict_ref(dictionary):
+    d = {}
+    for item in dictionary.items():
+        d[item[0]] = len(item[1])
+    return d
+
+def user():
+    print "Welcome to the Hangman game. Would you like to play the tester (t) version or the game (g)?"
+    response = str(raw_input("Type t or g."))
+    print "Choose how long you want your word to be from 3 to 22 characters:"
+    n = int(raw_input())
+    words = get_words("lowerwords.txt",n)
+    available = word_length(words, n)
+    one = random.choice(available)
+    if response == "t":
+        print one
+    display = ["_"]*len(one)
+    numguess = int(raw_input("How many guesses would you like? Please enter a positive integer."))
+    history = ""
+    result = ""
+    while numguess > 0:
+        guess = raw_input("What is your guess?")
+        keys = create_key(guess, available)
+        dictionary = create_dict(keys, available, guess, guesses_so_far(guess, history))
+        longcat = longest_cat(dictionary)
+        available = longcat
+        one = random.choice(longcat)
+        outcome = win(one,result)
+        if response == "t":
+            print "The word is now ", one
+            print "Number of words possible: ", len(longcat)
+            print "Dictionary of categories and words: "
+            for item in dict_ref(dictionary).items():
+                print item[0] + " " + str(item[1])
+        if outcome != 0:
+            print "Congratulations! You won! The word was ", one
+            return
+        if one.split() == guess.split():
+            print "Congratulations! You won! The word was ", one
+            return
+        if len(guess) == 1 and guess not in one:
+            result = process_letter(display, one, guess)
+            print result
+            numguess = misses_left(numguess)
+            print "Wrong guesses left: ", numguess
+            history = guesses_so_far(guess, history)
+            print "Wrong previous guesses: ", history
+        if len(guess) != 1 and guess != one:
+            result = process_letter(display, one, guess)
+            print result
+            numguess = misses_left(numguess)
+            print "Wrong guesses left: ", numguess
+            history = guesses_so_far(guess, history)
+            print "Wrong previous guesses: ", history
+        if len(guess) == 1 and guess in one:
+            result = process_letter(display, one, guess)
+            print result
+            numguess += 0
+            print "Wrong guesses left:" , numguess
+            history = history 
+            print "Letters you have guessed so far: ", history
+        if "_" not in result:
+            print "Congratulations! You won! The word was ", one
+            return
+    print "Game Over, you lose. The word was ", one
+    return
+        
+if __name__ == "__main__":
+    user()
+    
